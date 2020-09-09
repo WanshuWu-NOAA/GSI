@@ -18,7 +18,7 @@
      time_window,perturb_obs,perturb_fact,sfcmodel,destroy_obsmod_vars,dsis,&
      dtbduv_on,time_window_max,offtime_data,init_directories,oberror_tune,ext_sonde, &
      blacklst,init_obsmod_vars,lobsdiagsave,lobskeep,lobserver,hilbert_curve,&
-     lread_obs_save,lread_obs_skip,time_window_rad, &
+     lread_obs_save,lread_obs_skip,time_window_rad,tcp_posmatch, &
      neutral_stability_windfact_2dvar,use_similarity_2dvar
   use gsi_dbzOper, only: diag_radardbz
 
@@ -532,6 +532,7 @@
 !                        analysis fails if obs file ref time is different from analysis time.
 !
 !     perturb_obs - logical flag to perutrb observation (true=on)
+!     tcp_posmatch - logical flag to move TC to guess position
 !     oberror_tune - logical flag to tune oberror table  (true=on)
 !     perturb_fact -  magnitude factor for observation perturbation
 !     crtm_coeffs_path - path of directory w/ CRTM coeffs files
@@ -661,7 +662,7 @@
        oneobtest,sfcmodel,dtbduv_on,ifact10,l_foto,offtime_data,&
        use_pbl,use_compress,nsig_ext,gpstop,&
        perturb_obs,perturb_fact,oberror_tune,preserve_restart_date, &
-       crtm_coeffs_path,berror_stats, &
+       crtm_coeffs_path,berror_stats,tcp_posmatch, &
        newpc4pred,adp_anglebc,angord,passive_bc,use_edges,emiss_bc,upd_pred,reset_bad_radbc,&
        ssmis_method, ssmis_precond, gmi_method, amsr2_method, bias_zero_start, &
        ec_amv_qc, lobsdiagsave, lobsdiag_forenkf, &

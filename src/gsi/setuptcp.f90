@@ -52,7 +52,7 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
   use m_obsdiagNode, only: obsdiagNode_assert
 
   use obsmod, only:  &
-             nobskeep,lobsdiag_allocated,oberror_tune,perturb_obs, &
+             nobskeep,lobsdiag_allocated,oberror_tune,perturb_obs,tcp_posmatch,  &
              time_offset,rmiss_single,lobsdiagsave,lobsdiag_forenkf,ianldate
   use obsmod, only: netcdf_diag, binary_diag, dirname
   use nc_diag_write_mod, only: nc_diag_init, nc_diag_header, nc_diag_metadata, &
@@ -67,9 +67,9 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
   use qcmod, only: npres_print
   use guess_grids, only: ges_lnprsl,nfldsig,hrdifsig, &
           ntguessig
-  use gridmod, only: get_ij,nsig
+  use gridmod, only: get_ij,nsig,rlats,rlons
   use constants, only: zero,half,one,tiny_r_kind,two,cg_term, &
-          wgtlim,g_over_rd,huge_r_kind,pi,huge_single,tiny_single,r10
+          wgtlim,g_over_rd,huge_r_kind,pi,huge_single,tiny_single,r10,rad2deg
   use convinfo, only: nconvtype,cermin,cermax,cgross,cvar_b,cvar_pg,ictype,&
           icsubtype
   use jfunc, only: jiter,last,jiterstart,miter
@@ -135,10 +135,12 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
   character(8),allocatable,dimension(:):: cdiagbuf
   real(r_single),allocatable,dimension(:,:)::rdiagbuf
   integer(i_kind) nchar,nreal,ii
+     integer(i_kind)imin,jmin,j,l,jb,je,lb,le,method
 
   real(r_kind),allocatable,dimension(:,:,:  ) :: ges_ps
   real(r_kind),allocatable,dimension(:,:,:  ) :: ges_z
   real(r_kind),allocatable,dimension(:,:,:,:) :: ges_tv
+     real(r_kind)lj,li,pmin
 
   type(obsLList),pointer,dimension(:):: tcphead
   tcphead => obsLL(:)
@@ -242,6 +244,37 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
 
      if(.not.in_curbin) cycle
 
+! relocate obs when TC relocation is not done
+    method=1
+    pges=9999.
+  if(tcp_posmatch)then
+     pmin=150.
+     jb=dlon-5
+     je=dlon+5
+     lb=dlat-5
+     le=dlat+5
+     do j=jb,je  
+        lj=float(j)
+        do l=lb,le
+           li=float(l)
+           call tintrp2a11(ges_ps,psges,li,lj,dtime,hrdifsig,mype,nfldsig)
+           if(pmin>psges)then
+              imin=l
+              jmin=j
+              pmin=psges
+           endif
+        enddo
+     enddo
+        write(6,*)'www min Psfc_ges =',pmin,imin,jmin
+        write(6,*)'www lat,lon=',rad2deg*rlats(imin),rad2deg*rlons(jmin)
+        write(6,*)'www method =',method
+     if(method==1 .and. pmin< 150.)then
+        dlat=imin
+        dlon=jmin
+     else
+        pges=pmin
+     endif
+  endif
 ! Get guess sfc hght at obs location
      call intrp2a11(ges_z(1,1,ntguessig),zsges,dlat,dlon,mype)
 
@@ -254,6 +287,7 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
 
 ! Convert pressure to grid coordinates
      pgesorig = psges
+     if(method==2 .and. pges< 150. )pgesorig=pges
 
 ! Take log for vertical interpolation
      psges = log(psges)
@@ -418,6 +452,10 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
            my_head%ppertb= data(iptrb,i)/error/ratio_errors ! obs perturbation
         endif
 
+       write(6,*)'www locations',data(ilate,i),data(ilone,i)
+       write(6,*)'www dlat,dlon',dlat,dlon
+       write(6,*)'www ddiff ',ddiff
+       write(6,*)'www obs,ges ',pob,pges
         if (luse_obsdiag) then
            call obsdiagNode_assert(my_diag, my_head%idv,my_head%iob,1, myname,'my_diag:my_head')
            my_head%diags => my_diag

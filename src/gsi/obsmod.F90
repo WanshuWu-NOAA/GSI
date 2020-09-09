@@ -174,6 +174,7 @@ module obsmod
 ! Variable Definitions:
 !   def oberror_tune - namelist logical to tune (=true) oberror
 !   def perturb_obs  - namelist logical to perturb (=true) observations
+!   def tcp_posmatch - namelist logical to move (=true) TC to guess position
 !   def perturb_fact - namelist scaling factor for observation perturbations
 !   def write_diag   - namelist logical array to compute/write (=true) diag files
 !   def diag_radardbz- namelist logical to compute/write (=true) radar
@@ -428,7 +429,7 @@ module obsmod
   public :: lsaveobsens
   public ::                  iout_cldch, mype_cldch
   public ::          nprof_gps,time_offset,ianldate
-  public :: iout_oz,iout_co,dsis,ref_obs,obsfile_all,lobserver,perturb_obs,ditype,dsfcalc,dplat
+  public :: iout_oz,iout_co,dsis,ref_obs,obsfile_all,lobserver,tcp_posmatch,perturb_obs,ditype,dsfcalc,dplat
   public :: time_window,dval,dtype,dfile,dirname,obs_setup,oberror_tune,offtime_data
   public :: lobsdiagsave,lobsdiag_forenkf,blacklst,hilbert_curve,lobskeep,time_window_max,sfcmodel,ext_sonde
   public :: neutral_stability_windfact_2dvar
@@ -616,7 +617,7 @@ module obsmod
 
   logical oberrflg,bflag,oberror_tune,perturb_obs,ref_obs,sfcmodel,dtbduv_on,dval_use
   logical blacklst,lobsdiagsave,lobsdiag_allocated,lobskeep,lsaveobsens
-  logical lobserver,l_do_adjoint, lobsdiag_forenkf
+  logical lobserver,l_do_adjoint, lobsdiag_forenkf,tcp_posmatch
   logical,dimension(0:50):: write_diag
   logical diag_radardbz 
   logical reduce_diag
@@ -751,6 +752,7 @@ contains
 
 !   Set logical flag
     perturb_obs = .false.   ! .true. = perturb observations
+    tcp_posmatch = .false.   ! .true. = move obs to TC guess position
     oberror_tune = .false.   ! .true. = tune oberror
     perturb_fact = one 
     do i=0,50
