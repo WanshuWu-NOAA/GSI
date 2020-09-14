@@ -532,7 +532,8 @@
 !                        analysis fails if obs file ref time is different from analysis time.
 !
 !     perturb_obs - logical flag to perutrb observation (true=on)
-!     tcp_posmatch - logical flag to move TC to guess position
+!     tcp_posmatch - integer =1 to move TC to guess position,
+!                            =2 set pges to the minimum Psfc 
 !     oberror_tune - logical flag to tune oberror table  (true=on)
 !     perturb_fact -  magnitude factor for observation perturbation
 !     crtm_coeffs_path - path of directory w/ CRTM coeffs files

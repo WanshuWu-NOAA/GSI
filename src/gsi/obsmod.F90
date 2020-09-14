@@ -174,7 +174,8 @@ module obsmod
 ! Variable Definitions:
 !   def oberror_tune - namelist logical to tune (=true) oberror
 !   def perturb_obs  - namelist logical to perturb (=true) observations
-!   def tcp_posmatch - namelist logical to move (=true) TC to guess position
+!   def tcp_posmatch - namelist integer =1 to move TC to guess position,
+!                                       =2 set pges to the minimum Psfc 
 !   def perturb_fact - namelist scaling factor for observation perturbations
 !   def write_diag   - namelist logical array to compute/write (=true) diag files
 !   def diag_radardbz- namelist logical to compute/write (=true) radar
@@ -596,7 +597,7 @@ module obsmod
   real(r_kind) ,allocatable,dimension(:):: dval
   real(r_kind) ,allocatable,dimension(:):: time_window
 
-  integer(i_kind) ntilt_radarfiles
+  integer(i_kind) ntilt_radarfiles,tcp_posmatch
 
   logical ::  doradaroneob
   logical :: vr_dealisingopt, if_vterminal, if_model_dbz, inflate_obserr, if_vrobs_raw
@@ -617,7 +618,7 @@ module obsmod
 
   logical oberrflg,bflag,oberror_tune,perturb_obs,ref_obs,sfcmodel,dtbduv_on,dval_use
   logical blacklst,lobsdiagsave,lobsdiag_allocated,lobskeep,lsaveobsens
-  logical lobserver,l_do_adjoint, lobsdiag_forenkf,tcp_posmatch
+  logical lobserver,l_do_adjoint, lobsdiag_forenkf
   logical,dimension(0:50):: write_diag
   logical diag_radardbz 
   logical reduce_diag
@@ -752,7 +753,7 @@ contains
 
 !   Set logical flag
     perturb_obs = .false.   ! .true. = perturb observations
-    tcp_posmatch = .false.   ! .true. = move obs to TC guess position
+    tcp_posmatch = 0     
     oberror_tune = .false.   ! .true. = tune oberror
     perturb_fact = one 
     do i=0,50

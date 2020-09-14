@@ -67,9 +67,9 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
   use qcmod, only: npres_print
   use guess_grids, only: ges_lnprsl,nfldsig,hrdifsig, &
           ntguessig
-  use gridmod, only: get_ij,nsig,rlats,rlons
+  use gridmod, only: get_ij,nsig
   use constants, only: zero,half,one,tiny_r_kind,two,cg_term, &
-          wgtlim,g_over_rd,huge_r_kind,pi,huge_single,tiny_single,r10,rad2deg
+          wgtlim,g_over_rd,huge_r_kind,pi,huge_single,tiny_single,r10
   use convinfo, only: nconvtype,cermin,cermax,cgross,cvar_b,cvar_pg,ictype,&
           icsubtype
   use jfunc, only: jiter,last,jiterstart,miter
@@ -135,7 +135,7 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
   character(8),allocatable,dimension(:):: cdiagbuf
   real(r_single),allocatable,dimension(:,:)::rdiagbuf
   integer(i_kind) nchar,nreal,ii
-     integer(i_kind)imin,jmin,j,l,jb,je,lb,le,method
+     integer(i_kind)imin,jmin,j,l,jb,je,lb,le
 
   real(r_kind),allocatable,dimension(:,:,:  ) :: ges_ps
   real(r_kind),allocatable,dimension(:,:,:  ) :: ges_z
@@ -244,37 +244,34 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
 
      if(.not.in_curbin) cycle
 
-! relocate obs when TC relocation is not done
-    method=1
-    pges=9999.
-  if(tcp_posmatch)then
-     pmin=150.
-     jb=dlon-5
-     je=dlon+5
-     lb=dlat-5
-     le=dlat+5
-     do j=jb,je  
-        lj=float(j)
-        do l=lb,le
-           li=float(l)
-           call tintrp2a11(ges_ps,psges,li,lj,dtime,hrdifsig,mype,nfldsig)
-           if(pmin>psges)then
-              imin=l
-              jmin=j
-              pmin=psges
-           endif
+! relocate obs or o-g when TC relocation is not done
+     pges=9999.
+     if(tcp_posmatch > 0 )then
+        pmin=150.
+        jb=dlon-5      ! search (+5,-5)dx/dy for ges TC center
+        je=dlon+5      ! modify (5 grids to larger number?) when resolution increased
+        lb=dlat-5
+        le=dlat+5
+        do j=jb,je  
+           lj=float(j)
+           do l=lb,le
+              li=float(l)
+              call tintrp2a11(ges_ps,psges,li,lj,dtime,hrdifsig,mype,nfldsig)
+              if(pmin>psges)then
+                 imin=l
+                 jmin=j
+                 pmin=psges
+              endif
+           enddo
         enddo
-     enddo
-        write(6,*)'www min Psfc_ges =',pmin,imin,jmin
-        write(6,*)'www lat,lon=',rad2deg*rlats(imin),rad2deg*rlons(jmin)
-        write(6,*)'www method =',method
-     if(method==1 .and. pmin< 150.)then
-        dlat=imin
-        dlon=jmin
-     else
-        pges=pmin
+!       write(6,*)'min Psfc_ges =',pmin,imin,jmin
+        if(tcp_posmatch==1 .and. pmin< 150.)then
+           dlat=imin
+           dlon=jmin
+        else if(tcp_posmatch==2 .and. pmin< 150.)then
+           pges=pmin   ! store pmin in pges temporarily 
+        endif
      endif
-  endif
 ! Get guess sfc hght at obs location
      call intrp2a11(ges_z(1,1,ntguessig),zsges,dlat,dlon,mype)
 
@@ -287,7 +284,6 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
 
 ! Convert pressure to grid coordinates
      pgesorig = psges
-     if(method==2 .and. pges< 150. )pgesorig=pges
 
 ! Take log for vertical interpolation
      psges = log(psges)
@@ -318,6 +314,9 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
 
 ! Adjust guess hydrostatically
      rdp = g_over_rd*rdelz/tges
+
+! Set minimum Psfc as pgesorig if tcp_posmatch= 2
+     if(tcp_posmatch==2 .and. pges< 150. )pgesorig=pges
 
 ! Subtract off dlnp correction, then convert to pressure (cb)
      pges = exp(log(pgesorig) - rdp)
@@ -452,10 +451,6 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
            my_head%ppertb= data(iptrb,i)/error/ratio_errors ! obs perturbation
         endif
 
-       write(6,*)'www locations',data(ilate,i),data(ilone,i)
-       write(6,*)'www dlat,dlon',dlat,dlon
-       write(6,*)'www ddiff ',ddiff
-       write(6,*)'www obs,ges ',pob,pges
         if (luse_obsdiag) then
            call obsdiagNode_assert(my_diag, my_head%idv,my_head%iob,1, myname,'my_diag:my_head')
            my_head%diags => my_diag
