@@ -30,6 +30,7 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
 !   2016-11-29  shlyaeva - save linearized H(x) for EnKF
 !   2017-02-09  guo     - Remove m_alloc, n_alloc.
 !                       . Remove my_node with corrected typecast().
+!   2020-09-15  wu      - add option tcp_posmatch 
 !
 !   input argument list:
 !
@@ -135,12 +136,12 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
   character(8),allocatable,dimension(:):: cdiagbuf
   real(r_single),allocatable,dimension(:,:)::rdiagbuf
   integer(i_kind) nchar,nreal,ii
-     integer(i_kind)imin,jmin,j,l,jb,je,lb,le
+  integer(i_kind)imin,jmin,j,l,jb,je,lb,le
 
   real(r_kind),allocatable,dimension(:,:,:  ) :: ges_ps
   real(r_kind),allocatable,dimension(:,:,:  ) :: ges_z
   real(r_kind),allocatable,dimension(:,:,:,:) :: ges_tv
-     real(r_kind)lj,li,pmin
+  real(r_kind)lj,li,pmin
 
   type(obsLList),pointer,dimension(:):: tcphead
   tcphead => obsLL(:)
@@ -244,8 +245,9 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
 
      if(.not.in_curbin) cycle
 
-! relocate obs or o-g when TC relocation is not done
-     pges=9999.
+! use option when TC relocation is not done
+!         tcp_posmatch=1 to move TC to guess position,
+!         tcp_posmatch=2 set pges to the minimum Psfc 
      if(tcp_posmatch > 0 )then
         pmin=150.
         jb=dlon-5      ! search (+5,-5)dx/dy for ges TC center
@@ -264,12 +266,9 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
               endif
            enddo
         enddo
-!       write(6,*)'min Psfc_ges =',pmin,imin,jmin
         if(tcp_posmatch==1 .and. pmin< 150.)then
            dlat=imin
            dlon=jmin
-        else if(tcp_posmatch==2 .and. pmin< 150.)then
-           pges=pmin   ! store pmin in pges temporarily 
         endif
      endif
 ! Get guess sfc hght at obs location
@@ -316,7 +315,7 @@ subroutine setuptcp(obsLL,odiagLL,lunin,mype,bwork,awork,nele,nobs,is,conv_diags
      rdp = g_over_rd*rdelz/tges
 
 ! Set minimum Psfc as pgesorig if tcp_posmatch= 2
-     if(tcp_posmatch==2 .and. pges< 150. )pgesorig=pges
+     if(tcp_posmatch==2 .and. pmin< 150. )pgesorig=pmin
 
 ! Subtract off dlnp correction, then convert to pressure (cb)
      pges = exp(log(pgesorig) - rdp)

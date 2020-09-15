@@ -439,6 +439,7 @@
 !                          model (e.g., HWRF) aircraft recon dynamic
 !                          observation error (DOE) specification to
 !                          GSI namelist level (beneath obsmod.F90).
+!  09-15-2020 Wu        Add option tcp_posmatch to mitigate possibility of erroneous TC initialization
 !
 !EOP
 !-------------------------------------------------------------------------
